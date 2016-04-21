@@ -5,13 +5,13 @@ import random
 import uuid
 import threading
 import server
-
+import storage
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def key_from_value(dict, val):
-    return list(dict.keys())[list(dict.values()).index(val)]
+#def key_from_value(dict, val):
+#    return list(dict.keys())[list(dict.values()).index(val)]
 
 class NotifyBot(object):
     def __init__(self, api, updater = None):
@@ -26,7 +26,7 @@ class NotifyBot(object):
             ('server', self.get_host_name)
         ]
 
-        self.keys = {} #"key" : "chat_id"
+        #self.keys = {} #"key" : "chat_id"
         self.updater_thread = None
         self.server_thread = None
 
@@ -44,8 +44,8 @@ class NotifyBot(object):
     def key(self, bot, update):
         key = self.generate_key()
         bot.sendMessage(chat_id=update.message.chat_id, text=key)
-        self.keys[key] = update.message.chat_id
-
+        #self.keys[key] = update.message.chat_id
+        storage.add_key(key, update.message.chat_id)
         bot.sendMessage(chat_id=update.message.chat_id, text="Your key has been registered!")
 
     def get_host_name(self, bot, update):
@@ -56,9 +56,12 @@ class NotifyBot(object):
     def help(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text=self.help_text)
         try:
-            logger.debug(key_from_value(self.keys, update.message.chat_id))
-            key = key_from_value(self.keys, update.message.chat_id)
-            bot.sendMessage(chat_id=update.message.chat_id, text="Your registered key is:%s"%(key))
+            #logger.debug(key_from_value(self.keys, update.message.chat_id))
+            #key = key_from_value(self.keys, update.message.chat_id)
+            key = storage.get_key(update.message.chat_id)
+            if not key:
+                raise(Exception("No key"))
+            bot.sendMessage(chat_id=update.message.chat_id, text="Your registered key is: %s"%(key))
         except:
             bot.sendMessage(chat_id=update.message.chat_id, text="You have no keys. Use /key to generate one.")
 
@@ -66,12 +69,13 @@ class NotifyBot(object):
 
     """ bot operation functions """
     def send_notification(self, key, text):
-        print(key, text)
-        if key in self.keys.keys():
-            chat_id = self.keys[key]
+        try:
+            chat_id = storage.get_chat_id(key)
+            if not chat_id:
+                raise(Exception("No chat id"))
             self.api.sendMessage(chat_id=chat_id, text=text)
             return 1
-        else:
+        except:
             logger.debug("Key not found")
             return 0
 
@@ -113,5 +117,4 @@ with open("api.token") as f:
     token = f.read().strip()
 
 notify_bot = NotifyBot(telegram.Bot(token=token), updater = Updater(token=token))
-
 notify_bot.run()
