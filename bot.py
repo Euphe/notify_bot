@@ -6,12 +6,8 @@ import uuid
 import threading
 import server
 import storage
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-#def key_from_value(dict, val):
-#    return list(dict.keys())[list(dict.values()).index(val)]
+from logging.handlers import TimedRotatingFileHandler
+import os
 
 class NotifyBot(object):
     def __init__(self, api, updater = None):
@@ -112,6 +108,24 @@ class NotifyBot(object):
         
         while(True):
             pass
+
+if not os.path.exists( os.path.dirname('./logs/') ):
+    os.makedirs( './logs/' )
+
+log_path = './logs/debug.log'
+fh = TimedRotatingFileHandler(log_path, when="d", interval = 1, backupCount = 5)
+fh.setLevel(logging.DEBUG)
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+console = logging.StreamHandler()
+console.setLevel(logging.ERROR)
+formatter = logging.Formatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s')
+console.setFormatter(formatter)
+logger.addHandler(console)
+logger.addHandler(fh)
 
 with open("api.token") as f:
     token = f.read().strip()
