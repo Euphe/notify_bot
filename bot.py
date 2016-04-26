@@ -8,7 +8,8 @@ import server
 import storage
 from logging.handlers import TimedRotatingFileHandler
 import os
-
+import sys
+import server_settings
 class NotifyBot(object):
     def __init__(self, api, updater = None):
         self.api = api
@@ -51,15 +52,20 @@ class NotifyBot(object):
 
     def help(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text=self.help_text)
+        bot.sendMessage(chat_id=update.message.chat_id, text="Notify Bot is receiving messages on:\nhttp://%s/<your_key>"%(server_settings.SERVER_NAME))
         try:
             #logger.debug(key_from_value(self.keys, update.message.chat_id))
             #key = key_from_value(self.keys, update.message.chat_id)
             key = storage.get_key(update.message.chat_id)
             if not key:
                 raise(Exception("No key"))
-            bot.sendMessage(chat_id=update.message.chat_id, text="Your registered key is: %s"%(key))
+            bot.sendMessage(chat_id=update.message.chat_id, text="Your registered key is:\n%s"%(key))
+
+            bot.sendMessage(chat_id=update.message.chat_id, text="Send any text in 'text' attribute of a POST request to this link:\nhttp://%s/%s\n... and I will send it to you."%(server_settings.SERVER_NAME, key))
         except:
             bot.sendMessage(chat_id=update.message.chat_id, text="You have no keys. Use /key to generate one.")
+
+        bot.sendMessage(chat_id=update.message.chat_id, text="Still confused? See the readme:\nhttps://github.com/Euphe/notify_bot/blob/master/README.md")
 
     
 
@@ -109,11 +115,13 @@ class NotifyBot(object):
         while(True):
             pass
 
-if not os.path.exists( os.path.dirname('./logs/') ):
-    os.makedirs( './logs/' )
+abs_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+log_path = abs_path+'/logs/'
+if not os.path.exists( log_path ):
+    os.makedirs(log_path)
 
-log_path = './logs/debug.log'
-fh = TimedRotatingFileHandler(log_path, when="d", interval = 1, backupCount = 5)
+log_file = log_path+'debug.log'
+fh = TimedRotatingFileHandler(log_file, when="d", interval = 1, backupCount = 5)
 fh.setLevel(logging.DEBUG)
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
