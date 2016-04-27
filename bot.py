@@ -10,6 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
 import server_settings
+logger = None
 class NotifyBot(object):
     def __init__(self, api, updater = None):
         self.api = api
@@ -91,7 +92,30 @@ class NotifyBot(object):
         self.updater.dispatcher.addTelegramMessageHandler(self.unknown)
         self.updater.dispatcher.addErrorHandler(self.error)
 
-    def run(self):
+    def run(self):  
+        global logger
+        abs_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+        log_path = abs_path+'/logs/'
+        if not os.path.exists( log_path ):
+            os.makedirs(log_path)
+
+        log_file = log_path+'debug.log'
+        fh = TimedRotatingFileHandler(log_file, when="d", interval = 1, backupCount = 5)
+        fh.setLevel(logging.DEBUG)
+
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+
+        console = logging.StreamHandler()
+        console.setLevel(logging.ERROR)
+        formatter = logging.Formatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s')
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+        logger.addHandler(fh)
+
+
+
         self.map_commands()
         #self.updater.start_polling(poll_interval=0.1, timeout=10)
 
@@ -115,28 +139,10 @@ class NotifyBot(object):
         while(True):
             pass
 
-abs_path = os.path.dirname(os.path.realpath(sys.argv[0]))
-log_path = abs_path+'/logs/'
-if not os.path.exists( log_path ):
-    os.makedirs(log_path)
 
-log_file = log_path+'debug.log'
-fh = TimedRotatingFileHandler(log_file, when="d", interval = 1, backupCount = 5)
-fh.setLevel(logging.DEBUG)
+if __name__ == '__main__':
+    with open("api.token") as f:
+        token = f.read().strip()
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-console = logging.StreamHandler()
-console.setLevel(logging.ERROR)
-formatter = logging.Formatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s')
-console.setFormatter(formatter)
-logger.addHandler(console)
-logger.addHandler(fh)
-
-with open("api.token") as f:
-    token = f.read().strip()
-
-notify_bot = NotifyBot(telegram.Bot(token=token), updater = Updater(token=token))
-notify_bot.run()
+    notify_bot = NotifyBot(telegram.Bot(token=token), updater = Updater(token=token))
+    notify_bot.run()
